@@ -5,8 +5,8 @@ import { TutorSession } from "@/types/tutor";
 // مدت زمان مجاز نگهداری پیام‌ها و مکالمات: ۲ روز (۴۸ ساعت به میلی‌ثانیه)
 export const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
 
-// سازگار با محیط‌های ابری و سرورلس ورسل (/tmp) و سرورهای محلی (data/sessions)
-const SESSIONS_DIR = process.env.VERCEL
+// سازگار با محیط‌های ابری و سرورلس ورسل و نتلیفای (/tmp) و سرورهای محلی (data/sessions)
+const SESSIONS_DIR = (process.env.VERCEL || process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME)
   ? path.join("/tmp", "sessions")
   : path.join(process.cwd(), "data", "sessions");
 
