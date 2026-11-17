@@ -8,6 +8,9 @@ import {
   X,
   Sparkles,
   BookOpen,
+  Shield,
+  User,
+  LogOut,
 } from "lucide-react";
 import { TutorSession } from "@/types/tutor";
 
@@ -19,6 +22,9 @@ interface SidebarHistoryProps {
   onDeleteSession: (sessionId: string) => void;
   isOpen: boolean;
   onClose: () => void;
+  user?: { email: string; name: string } | null;
+  onOpenAdmin?: () => void;
+  onOpenAuth?: () => void;
 }
 
 export default function SidebarHistory({
@@ -29,6 +35,9 @@ export default function SidebarHistory({
   onDeleteSession,
   isOpen,
   onClose,
+  user,
+  onOpenAdmin,
+  onOpenAuth,
 }: SidebarHistoryProps) {
   return (
     <>
@@ -66,6 +75,28 @@ export default function SidebarHistory({
             <X className="h-5 w-5" />
           </button>
         </div>
+
+        {/* وضعیت حساب کاربری */}
+        {user ? (
+          <div className="mb-3 flex items-center gap-2.5 rounded-xl border border-indigo-500/20 bg-indigo-950/30 p-2.5 text-xs">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-600 font-bold text-white uppercase text-xs">
+              {user.name.slice(0, 1)}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-slate-200 truncate">{user.name}</p>
+              <p className="text-[10px] text-slate-400 truncate" dir="ltr">
+                {user.email}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div
+            onClick={onOpenAuth}
+            className="mb-3 cursor-pointer rounded-xl border border-amber-500/25 bg-amber-950/20 p-2 text-center text-[11px] text-amber-300 transition hover:bg-amber-950/40"
+          >
+            حالت مهمان (کلیک جهت ورود با ایمیل)
+          </div>
+        )}
 
         {/* New Chat Button */}
         <button
@@ -134,8 +165,19 @@ export default function SidebarHistory({
           )}
         </div>
 
-        {/* Footer info badge */}
-        <div className="mt-auto border-t border-slate-900 pt-3">
+        {/* Footer info badge and Admin */}
+        <div className="mt-auto border-t border-slate-900 pt-3 space-y-2">
+          {onOpenAdmin && (
+            <button
+              type="button"
+              onClick={onOpenAdmin}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-800 bg-slate-900/60 py-2 text-xs text-indigo-300 transition hover:bg-slate-800 hover:text-white"
+            >
+              <Shield className="h-3.5 w-3.5 text-indigo-400" />
+              <span>پنل مدیریت و تنظیمات API</span>
+            </button>
+          )}
+
           <div className="flex items-center gap-2 rounded-xl bg-slate-900/60 p-2.5 text-[11px] text-slate-400">
             <Sparkles className="h-4 w-4 text-indigo-400 shrink-0" />
             <span>پشتیبانی از متن، تصویر و صوت آموزشی</span>

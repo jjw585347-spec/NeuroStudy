@@ -6,6 +6,7 @@ import ChatBox from "@/components/ChatBox";
 import ChatInput from "@/components/ChatInput";
 import QuestionSolverView from "@/components/QuestionSolverView";
 import AuthModal from "@/components/AuthModal";
+import AdminSettingsModal from "@/components/AdminSettingsModal";
 import { TutorMessage, TutorSession, MessageAttachment } from "@/types/tutor";
 import {
   Menu,
@@ -17,6 +18,7 @@ import {
   User,
   MessageSquare,
   Target,
+  Shield,
 } from "lucide-react";
 
 interface UserProfile {
@@ -31,12 +33,20 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [autoPlayAudio, setAutoPlayAudio] = useState(false);
 
-  // وضعیت احراز هویت کاربر
+  // وضعیت احراز هویت کاربر و پنل مدیریت
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"chat" | "solver">("chat");
 
   const loadingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // کلید مجزای ذخیره‌سازی محلی بر اساس ایمیل کاربر جهت تفکیک کامل چت‌ها
+  const getStorageKey = (currentUser: UserProfile | null) => {
+    return currentUser?.email
+      ? `neurostudy_sessions_${encodeURIComponent(currentUser.email.toLowerCase().trim())}`
+      : "neurostudy_guest_sessions";
+  };
 
   // واکشی جلسات ۲ روز گذشته کاربر از سرور
   const fetchUserServerSessions = async (email: string) => {
@@ -47,13 +57,27 @@ export default function HomePage() {
         if (data.sessions && Array.isArray(data.sessions) && data.sessions.length > 0) {
           setSessions(data.sessions);
           setCurrentSessionId(data.sessions[0].id);
-          localStorage.setItem("neurostudy_sessions", JSON.stringify(data.sessions));
+          localStorage.setItem(
+            getStorageKey({ email, name: "" }),
+            JSON.stringify(data.sessions)
+          );
           return;
         }
       }
     } catch (err) {
       console.warn("Failed to fetch server sessions:", err);
     }
+
+    // اگر کاربر در سرور چتی نداشت، یک نشست اختصاصی جدید برای او باز کن
+    const freshUserSession: TutorSession = {
+      id: `session-${Date.now()}`,
+      title: "گفتگوی درسی جدید",
+      messages: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setSessions([freshUserSession]);
+    setCurrentSessionId(freshUserSession.id);
   };
 
   // همگام‌سازی جلسات کاربر با سرور (با اعمال محدودیت ۲ روزه)
@@ -87,7 +111,8 @@ export default function HomePage() {
         setAutoPlayAudio(savedAutoPlay === "true");
       }
 
-      const saved = localStorage.getItem("neurostudy_sessions");
+      const targetKey = getStorageKey(initialUser);
+      const saved = localStorage.getItem(targetKey);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
@@ -106,7 +131,7 @@ export default function HomePage() {
       console.error("Failed to load sessions from storage:", e);
     }
 
-    // اگر کاربر لاگین بود، چت‌های ذخیره‌شده ۲ روزه از سرور واکشی شوند
+    // اگر کاربر لاگین بود، چت‌های اختصاصی ۲ روزه او از سرور واکشی شوند
     if (initialUser?.email) {
       fetchUserServerSessions(initialUser.email);
     } else {
@@ -114,7 +139,7 @@ export default function HomePage() {
         if (prev.length > 0) return prev;
         const initialSession: TutorSession = {
           id: "session-1",
-          title: "گفتگوی آموزشی جدید",
+          title: "گفتگوی آموزشی جدید (حالت مهمان)",
           messages: [],
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -133,25 +158,23 @@ export default function HomePage() {
       console.error(e);
     }
 
-    // بارگذاری مکالمات ۲ روز اخیر متصل به این ایمیل از سرور
+    // ابتدا بررسی کش محلی اختصاصی این کاربر
+    const userKey = getStorageKey(loggedInUser);
     try {
-      const res = await fetch(`/api/sessions?email=${encodeURIComponent(loggedInUser.email)}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.sessions && Array.isArray(data.sessions) && data.sessions.length > 0) {
-          setSessions(data.sessions);
-          setCurrentSessionId(data.sessions[0].id);
-          localStorage.setItem("neurostudy_sessions", JSON.stringify(data.sessions));
-          return;
+      const cached = localStorage.getItem(userKey);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setSessions(parsed);
+          setCurrentSessionId(parsed[0].id);
         }
       }
-      // اگر در سرور چتی نداشت اما در صفحه فعلی پیامی ثبت شده بود، به سرور ارسال شود
-      if (sessions.length > 0 && sessions.some((s) => s.messages.length > 0)) {
-        syncSessionsToServer(loggedInUser.email, sessions);
-      }
-    } catch (err) {
-      console.warn("Error loading user sessions upon login:", err);
+    } catch (e) {
+      console.error(e);
     }
+
+    // سپس واکشی فوری از سرور
+    await fetchUserServerSessions(loggedInUser.email);
   };
 
   const handleLogout = () => {
@@ -161,6 +184,36 @@ export default function HomePage() {
     } catch (e) {
       console.error(e);
     }
+
+    // پاکسازی فوری صفحه از چت‌های کاربر قبلی جهت حفظ حریم خصوصی
+    const guestKey = "neurostudy_guest_sessions";
+    let guestSessions: TutorSession[] = [];
+    try {
+      const saved = localStorage.getItem(guestKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          guestSessions = parsed;
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+
+    if (guestSessions.length === 0) {
+      guestSessions = [
+        {
+          id: `session-${Date.now()}`,
+          title: "گفتگوی آموزشی جدید (حالت مهمان)",
+          messages: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ];
+    }
+
+    setSessions(guestSessions);
+    setCurrentSessionId(guestSessions[0].id);
   };
 
   const toggleAutoPlay = () => {
@@ -176,7 +229,7 @@ export default function HomePage() {
   const saveSessions = (updated: TutorSession[]) => {
     setSessions(updated);
     try {
-      localStorage.setItem("neurostudy_sessions", JSON.stringify(updated));
+      localStorage.setItem(getStorageKey(user), JSON.stringify(updated));
     } catch (e) {
       console.error("Failed to save sessions to storage:", e);
     }
@@ -579,7 +632,7 @@ export default function HomePage() {
         };
       });
       try {
-        localStorage.setItem("neurostudy_sessions", JSON.stringify(updated));
+        localStorage.setItem(getStorageKey(user), JSON.stringify(updated));
       } catch (e) {
         console.error(e);
       }
@@ -606,7 +659,7 @@ export default function HomePage() {
         };
       });
       try {
-        localStorage.setItem("neurostudy_sessions", JSON.stringify(updated));
+        localStorage.setItem(getStorageKey(user), JSON.stringify(updated));
       } catch (e) {
         console.error(e);
       }
@@ -628,6 +681,9 @@ export default function HomePage() {
         onDeleteSession={handleDeleteSession}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
+        user={user}
+        onOpenAdmin={() => setIsAdminModalOpen(true)}
+        onOpenAuth={() => setIsAuthModalOpen(true)}
       />
 
       {/* بخش اصلی گفتگو */}
@@ -737,6 +793,16 @@ export default function HomePage() {
                 <span className="hidden sm:inline">ورود با ایمیل</span>
               </button>
             )}
+            {/* دکمه تنظیمات ادمین و کلیدهای API */}
+            <button
+              type="button"
+              onClick={() => setIsAdminModalOpen(true)}
+              title="پنل مدیریت و تنظیمات APIها"
+              className="flex items-center gap-1.5 rounded-xl border border-indigo-500/30 bg-slate-900/70 px-2.5 py-1 text-xs text-indigo-300 transition hover:bg-indigo-950/60 hover:text-white"
+            >
+              <Shield className="h-3.5 w-3.5 text-indigo-400" />
+              <span className="hidden lg:inline">تنظیمات API</span>
+            </button>
           </div>
         </header>
 
@@ -769,6 +835,12 @@ export default function HomePage() {
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
         onSuccess={handleLoginSuccess}
+      />
+
+      {/* مودال پنل مدیریت و تنظیمات APIها */}
+      <AdminSettingsModal
+        isOpen={isAdminModalOpen}
+        onClose={() => setIsAdminModalOpen(false)}
       />
     </div>
   );
