@@ -22,7 +22,29 @@ export async function POST(req: NextRequest) {
     // ۱. تولید توضیحات آموزشی متنی، دیاگرام Mermaid و استخراج پرامپت تصویری
     const aiResult = await generateTutorExplanation(finalQuestion, subject, attachment);
 
-    // ۲. تولید یا واکشی تصویر آماده در صورت نیاز به نمایش بصری
+    // ۲. در صورت عدم تطابق موضوع سوال با دسته‌بندی انتخابی، پاسخ راهنمایی فوری برگردان
+    if (aiResult.isOffTopic) {
+      const audioUrl = `/api/speech?text=${encodeURIComponent(
+        aiResult.ttsSummary || "موضوع سوال با دسته‌بندی انتخابی همخوانی ندارد."
+      )}`;
+
+      return NextResponse.json({
+        success: true,
+        explanation: aiResult.explanation,
+        isOffTopic: true,
+        detectedSubject: aiResult.detectedSubject,
+        suggestedSubjectName: aiResult.suggestedSubjectName,
+        diagramCode: undefined,
+        needsVisual: false,
+        ttsSummary: aiResult.ttsSummary,
+        subject: aiResult.subject,
+        followUpQuestions: aiResult.followUpQuestions || [],
+        imageUrl: undefined,
+        audioUrl,
+      });
+    }
+
+    // ۳. تولید یا واکشی تصویر آماده در صورت نیاز به نمایش بصری
     let imageUrl: string | undefined = undefined;
     let imageSource: "web_encyclopedia" | "ai_generated" = "ai_generated";
     let imageTitle: string | undefined = undefined;
@@ -55,7 +77,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // ۳. آماده‌سازی آدرس صوت برای TTS
+    // ۴. آماده‌سازی آدرس صوت برای TTS
     const audioUrl = `/api/speech?text=${encodeURIComponent(
       aiResult.ttsSummary || aiResult.explanation.slice(0, 200)
     )}`;
@@ -63,6 +85,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       explanation: aiResult.explanation,
+      isOffTopic: false,
+      detectedSubject: aiResult.detectedSubject,
+      suggestedSubjectName: aiResult.suggestedSubjectName,
       diagramCode: aiResult.diagramCode,
       needsVisual: aiResult.needsVisual,
       visualPrompt: aiResult.visualPrompt,

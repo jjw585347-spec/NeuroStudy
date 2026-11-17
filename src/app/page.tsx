@@ -38,6 +38,7 @@ export default function HomePage() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"chat" | "solver">("chat");
+  const [currentSubject, setCurrentSubject] = useState<string>("general");
 
   const loadingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -389,6 +390,7 @@ export default function HomePage() {
     subject: string = "general",
     attachment?: MessageAttachment
   ) => {
+    if (subject) setCurrentSubject(subject);
     if (!currentSession || (!text.trim() && !attachment) || isLoading) return;
 
     const userMessage: TutorMessage = {
@@ -468,6 +470,9 @@ export default function HomePage() {
             audioUrl: data.audioUrl,
             ttsSummary: data.ttsSummary,
             subject: data.subject,
+            isOffTopic: data.isOffTopic,
+            detectedSubject: data.detectedSubject,
+            suggestedSubjectName: data.suggestedSubjectName,
             followUpQuestions: data.followUpQuestions,
           });
           setIsLoading(false);
@@ -593,6 +598,9 @@ export default function HomePage() {
             audioUrl: explainData.audioUrl,
             ttsSummary: explainData.ttsSummary,
             subject: explainData.subject,
+            isOffTopic: explainData.isOffTopic,
+            detectedSubject: explainData.detectedSubject,
+            suggestedSubjectName: explainData.suggestedSubjectName,
             followUpQuestions: explainData.followUpQuestions,
           });
           setIsLoading(false);
@@ -688,30 +696,31 @@ export default function HomePage() {
 
       {/* بخش اصلی گفتگو */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        {/* هدر بالای صفحه */}
-        <header className="flex h-14 items-center justify-between border-b border-slate-800/80 bg-slate-950/60 px-4 backdrop-blur-md">
-          <div className="flex items-center gap-3">
+        {/* هدر بالای صفحه با بهینه‌سازی کامل ریسپانسیو موبایل */}
+        <header className="flex h-14 items-center justify-between border-b border-slate-800/80 bg-slate-950/60 px-2.5 sm:px-4 backdrop-blur-md gap-1.5 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <button
               type="button"
               onClick={() => setIsSidebarOpen(true)}
-              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white md:hidden"
+              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white md:hidden shrink-0"
+              title="مشاهده تاریخچه و منو"
             >
               <Menu className="h-5 w-5" />
             </button>
-            <div className="flex items-center gap-2">
-              <span className="flex h-2 w-2 rounded-full bg-emerald-400"></span>
-              <span className="text-xs font-semibold text-slate-200">
+            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+              <span className="flex h-2 w-2 rounded-full bg-emerald-400 shrink-0"></span>
+              <span className="max-w-[70px] xs:max-w-[110px] sm:max-w-[180px] md:max-w-xs truncate text-[11px] sm:text-xs font-semibold text-slate-200">
                 {activeTab === "solver" ? "حل هوشمند سوال و تست" : (currentSession?.title || "دستیار چندوجهی")}
               </span>
             </div>
           </div>
 
           {/* سوئیچر حالت: گفتگوی درسی یا حل تست و سوال */}
-          <div className="flex items-center rounded-xl border border-slate-800 bg-slate-900/80 p-0.5 text-xs shadow-inner">
+          <div className="flex items-center rounded-xl border border-slate-800 bg-slate-900/80 p-0.5 text-xs shadow-inner shrink-0">
             <button
               type="button"
               onClick={() => setActiveTab("chat")}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1 font-medium transition ${
+              className={`flex items-center gap-1 sm:gap-1.5 rounded-lg px-2 sm:px-3 py-1 font-medium transition ${
                 activeTab === "chat"
                   ? "bg-indigo-600 text-white shadow-sm"
                   : "text-slate-400 hover:text-slate-200"
@@ -719,24 +728,25 @@ export default function HomePage() {
             >
               <MessageSquare className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">گفتگوی آموزشی</span>
-              <span className="sm:hidden">چت</span>
+              <span className="sm:hidden text-[11px]">چت</span>
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab("solver")}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1 font-medium transition ${
+              className={`flex items-center gap-1 sm:gap-1.5 rounded-lg px-2 sm:px-3 py-1 font-medium transition ${
                 activeTab === "solver"
                   ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm font-semibold"
                   : "text-slate-400 hover:text-slate-200"
               }`}
             >
               <Target className="h-3.5 w-3.5 text-emerald-400" />
-              <span>حل سوال و تست</span>
+              <span className="hidden sm:inline">حل سوال و تست</span>
+              <span className="sm:hidden text-[11px]">تست</span>
             </button>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {/* سوئیچ پخش خودکار صدا */}
             <button
               type="button"
@@ -746,7 +756,7 @@ export default function HomePage() {
                   ? "پخش خودکار صدای استاد فعال است"
                   : "پخش خودکار صدای استاد غیرفعال است"
               }
-              className={`flex items-center gap-1.5 rounded-xl border px-2.5 py-1 text-xs transition ${
+              className={`flex items-center gap-1.5 rounded-xl border p-1.5 sm:px-2.5 sm:py-1 text-xs transition ${
                 autoPlayAudio
                   ? "border-indigo-500/60 bg-indigo-950/50 text-indigo-300"
                   : "border-slate-800 bg-slate-900/60 text-slate-400 hover:text-slate-200"
@@ -755,23 +765,23 @@ export default function HomePage() {
               {autoPlayAudio ? (
                 <>
                   <Volume2 className="h-3.5 w-3.5 text-indigo-400" />
-                  <span className="hidden md:inline">صوت خودکار: روشن</span>
+                  <span className="hidden md:inline">صوت: روشن</span>
                 </>
               ) : (
                 <>
                   <VolumeX className="h-3.5 w-3.5" />
-                  <span className="hidden md:inline">صوت خودکار: خاموش</span>
+                  <span className="hidden md:inline">صوت: خاموش</span>
                 </>
               )}
             </button>
 
             {/* بخش ورود / پروفایل کاربر */}
             {user ? (
-              <div className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/70 py-1 pl-2.5 pr-1.5 text-xs">
+              <div className="flex items-center gap-1.5 rounded-xl border border-slate-800 bg-slate-900/70 py-1 px-1.5 sm:pl-2.5 sm:pr-1.5 text-xs">
                 <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-600 font-bold text-white uppercase text-[11px]">
                   {user.name.slice(0, 1)}
                 </div>
-                <span className="max-w-[120px] truncate text-slate-200 font-medium">
+                <span className="hidden sm:inline max-w-[100px] truncate text-slate-200 font-medium">
                   {user.name}
                 </span>
                 <button
@@ -787,18 +797,20 @@ export default function HomePage() {
               <button
                 type="button"
                 onClick={() => setIsAuthModalOpen(true)}
-                className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:from-indigo-500 hover:to-violet-500"
+                className="flex items-center gap-1 sm:gap-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-2 sm:px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:from-indigo-500 hover:to-violet-500"
               >
                 <LogIn className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">ورود با ایمیل</span>
+                <span className="sm:hidden text-[11px]">ورود</span>
               </button>
             )}
+
             {/* دکمه تنظیمات ادمین و کلیدهای API */}
             <button
               type="button"
               onClick={() => setIsAdminModalOpen(true)}
               title="پنل مدیریت و تنظیمات APIها"
-              className="flex items-center gap-1.5 rounded-xl border border-indigo-500/30 bg-slate-900/70 px-2.5 py-1 text-xs text-indigo-300 transition hover:bg-indigo-950/60 hover:text-white"
+              className="flex items-center gap-1.5 rounded-xl border border-indigo-500/30 bg-slate-900/70 p-1.5 sm:px-2.5 sm:py-1 text-xs text-indigo-300 transition hover:bg-indigo-950/60 hover:text-white"
             >
               <Shield className="h-3.5 w-3.5 text-indigo-400" />
               <span className="hidden lg:inline">تنظیمات API</span>
@@ -814,9 +826,10 @@ export default function HomePage() {
             {/* باکس پیام‌ها و نمایشگر چندوجهی */}
             <ChatBox
               messages={currentSession?.messages || []}
-              onQuickPromptClick={(prompt, subject) =>
-                handleSendMessage(prompt, subject)
-              }
+              onQuickPromptClick={(prompt, subject) => {
+                if (subject) setCurrentSubject(subject);
+                handleSendMessage(prompt, subject);
+              }}
               isLoading={isLoading}
             />
 
@@ -825,6 +838,8 @@ export default function HomePage() {
               onSendMessage={handleSendMessage}
               onSendAudio={handleSendAudio}
               isLoading={isLoading}
+              activeSubject={currentSubject}
+              onSubjectChange={setCurrentSubject}
             />
           </>
         )}

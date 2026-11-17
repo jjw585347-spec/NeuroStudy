@@ -51,7 +51,7 @@ export default function SidebarHistory({
 
       {/* Sidebar Container */}
       <aside
-        className={`fixed inset-y-0 right-0 z-40 flex w-72 flex-col border-l border-slate-800 bg-slate-950/95 p-4 transition-transform duration-300 md:static md:translate-x-0 ${
+        className={`fixed inset-y-0 right-0 z-50 flex w-72 max-w-[85vw] flex-col border-l border-slate-800 bg-slate-950/98 p-4 shadow-2xl transition-transform duration-300 md:static md:z-auto md:translate-x-0 ${
           isOpen ? "translate-x-0" : "translate-x-full md:translate-x-0"
         }`}
       >

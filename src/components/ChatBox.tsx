@@ -174,8 +174,23 @@ export default function ChatBox({
                       visualPrompt={msg.visualPrompt}
                       audioUrl={msg.audioUrl}
                       ttsSummary={msg.ttsSummary}
+                      subject={msg.subject}
+                      isOffTopic={msg.isOffTopic}
+                      detectedSubject={msg.detectedSubject}
+                      suggestedSubjectName={msg.suggestedSubjectName}
                       followUpQuestions={msg.followUpQuestions}
                       onFollowUpClick={(q) => onQuickPromptClick(q, msg.subject || "general")}
+                      onSwitchSubject={(targetSub) => {
+                        const currentIdx = messages.indexOf(msg);
+                        const prevUser = messages
+                          .slice(0, currentIdx)
+                          .reverse()
+                          .find((m) => m.role === "user");
+                        const userQ = prevUser?.questionText || "";
+                        if (userQ) {
+                          onQuickPromptClick(userQ, targetSub);
+                        }
+                      }}
                       isLoading={msg.isLoading}
                       loadingStep={msg.loadingStep}
                     />

@@ -22,6 +22,8 @@ interface ChatInputProps {
   ) => void;
   onSendAudio: (blob: Blob, durationSeconds: number, subject?: string) => void;
   isLoading?: boolean;
+  activeSubject?: string;
+  onSubjectChange?: (subject: string) => void;
 }
 
 const QUICK_SUBJECTS = [
@@ -37,12 +39,27 @@ export default function ChatInput({
   onSendMessage,
   onSendAudio,
   isLoading = false,
+  activeSubject = "general",
+  onSubjectChange,
 }: ChatInputProps) {
   const [inputText, setInputText] = useState("");
   const [isRecordingAudio, setIsRecordingAudio] = useState(false);
-  const [selectedSubject, setSelectedSubject] = useState<string>("general");
+  const [selectedSubject, setSelectedSubject] = useState<string>(activeSubject);
   const [attachment, setAttachment] = useState<MessageAttachment | null>(null);
   const [isReadingFile, setIsReadingFile] = useState(false);
+
+  useEffect(() => {
+    if (activeSubject && activeSubject !== selectedSubject) {
+      setSelectedSubject(activeSubject);
+    }
+  }, [activeSubject]);
+
+  const handleSelectSubject = (subId: string) => {
+    setSelectedSubject(subId);
+    if (onSubjectChange) {
+      onSubjectChange(subId);
+    }
+  };
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -136,12 +153,12 @@ export default function ChatInput({
   const canSubmit = (inputText.trim().length > 0 || attachment !== null) && !isLoading && !isReadingFile;
 
   return (
-    <div className="relative mx-auto w-full max-w-4xl px-4 pb-4">
-      {/* Subject tags */}
-      <div className="mb-2 flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar">
-        <span className="flex items-center gap-1 text-slate-400 pl-1 shrink-0">
+    <div className="relative mx-auto w-full max-w-4xl px-2.5 sm:px-4 pb-3 sm:pb-4">
+      {/* Subject tags with smooth horizontal swipe */}
+      <div className="mb-2 flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar touch-pan-x scroll-smooth">
+        <span className="flex items-center gap-1 text-slate-400 pl-1 shrink-0 text-[11px] sm:text-xs">
           <Sparkles className="h-3 w-3 text-indigo-400" />
-          موضوع:
+          <span className="hidden xs:inline">موضوع:</span>
         </span>
         {QUICK_SUBJECTS.map((sub) => {
           const isSelected = selectedSubject === sub.id;
@@ -149,11 +166,11 @@ export default function ChatInput({
             <button
               key={sub.id}
               type="button"
-              onClick={() => setSelectedSubject(sub.id)}
-              className={`flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition ${
+              onClick={() => handleSelectSubject(sub.id)}
+              className={`flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] sm:text-xs font-medium transition active:scale-95 ${
                 isSelected
-                  ? "bg-indigo-600 text-white shadow-sm"
-                  : "bg-slate-800/80 text-slate-300 hover:bg-slate-700/80"
+                  ? "bg-indigo-600 text-white shadow-sm ring-1 ring-indigo-400/50"
+                  : "bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 active:bg-slate-700"
               }`}
             >
               <span>{sub.icon}</span>
@@ -215,7 +232,7 @@ export default function ChatInput({
             </div>
           )}
 
-          <div className="flex items-end p-2 sm:p-3">
+          <div className="flex items-end p-1.5 sm:p-2.5 gap-1 sm:gap-1.5">
             {/* Hidden file input */}
             <input
               type="file"
@@ -231,9 +248,9 @@ export default function ChatInput({
               onClick={() => fileInputRef.current?.click()}
               title="آپلود تصویر تمرین، عکس کتاب یا فایل جزوه"
               disabled={isLoading || isReadingFile}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-800 hover:text-indigo-300 disabled:opacity-50"
+              className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-800 hover:text-indigo-300 active:bg-slate-800 disabled:opacity-50"
             >
-              <Paperclip className="h-5 w-5" />
+              <Paperclip className="h-4 w-4 sm:h-5 sm:w-5" />
             </button>
 
             {/* Mic button */}
@@ -242,9 +259,9 @@ export default function ChatInput({
               onClick={() => setIsRecordingAudio(true)}
               title="پرسش با صوت (میکروفون)"
               disabled={isLoading || isReadingFile}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-800 hover:text-rose-400 disabled:opacity-50"
+              className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-800 hover:text-rose-400 active:bg-slate-800 disabled:opacity-50"
             >
-              <Mic className="h-5 w-5" />
+              <Mic className="h-4 w-4 sm:h-5 sm:w-5" />
             </button>
 
             {/* Textarea */}
@@ -257,10 +274,10 @@ export default function ChatInput({
               disabled={isLoading || isReadingFile}
               placeholder={
                 attachment
-                  ? "سوال یا نکته‌ای درباره این فایل/تصویر بنویسید (یا مستقیماً ارسال کنید)..."
-                  : "سوال درسی، کد یا تمرین را بپرسید... (یا تصویر تمرین را پیوست کنید)"
+                  ? "سوال یا نکته‌ای درباره این فایل/تصویر بنویسید..."
+                  : "سوال درسی، کد یا تمرین را بپرسید... (یا عکس سوال را پیوست کنید)"
               }
-              className="max-h-40 min-h-[44px] flex-1 resize-none bg-transparent px-3 py-2.5 text-sm leading-relaxed text-slate-100 placeholder-slate-500 focus:outline-none"
+              className="max-h-36 min-h-[38px] sm:min-h-[44px] flex-1 resize-none bg-transparent px-2.5 sm:px-3 py-2 sm:py-2.5 text-xs sm:text-sm leading-relaxed text-slate-100 placeholder-slate-500 focus:outline-none"
             />
 
             {/* Send button */}
@@ -269,9 +286,9 @@ export default function ChatInput({
               onClick={() => handleSubmit()}
               disabled={!canSubmit}
               title="ارسال سوال"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md transition hover:from-indigo-500 hover:to-violet-500 disabled:opacity-40 disabled:hover:from-indigo-600"
+              className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md transition hover:from-indigo-500 hover:to-violet-500 active:scale-95 disabled:opacity-40 disabled:hover:from-indigo-600"
             >
-              <SendHorizontal className="h-5 w-5 rotate-180" />
+              <SendHorizontal className="h-4 w-4 sm:h-5 sm:w-5 rotate-180" />
             </button>
           </div>
         </div>

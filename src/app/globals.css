@@ -35,19 +35,38 @@ body {
   background: #334155;
 }
 
-/* KaTeX adjustments for RTL contexts */
+/* KaTeX adjustments for RTL contexts and mobile overflow */
 .katex-display {
   direction: ltr !important;
   text-align: center;
-  margin: 1rem 0;
+  margin: 0.75rem 0;
+  max-width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
   padding: 0.5rem 0;
+  -webkit-overflow-scrolling: touch;
 }
 
 .katex {
   direction: ltr !important;
   display: inline-block;
+  max-width: 100%;
+}
+
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Mobile responsive pre/code */
+pre {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Prose code font */

@@ -17,6 +17,9 @@ export interface ExplanationResult {
   diagramCode?: string;
   ttsSummary: string;
   subject: string;
+  isOffTopic?: boolean;
+  detectedSubject?: string;
+  suggestedSubjectName?: string;
   followUpQuestions?: string[];
 }
 
@@ -28,6 +31,36 @@ const SYSTEM_PROMPT = `
 1. برای برنامه‌نویسی و طراحی وب: کدهای تمیز و کامل را با نام زبان در بلوک کد بنویسید و گام‌به‌گام توضیح دهید.
 2. برای ریاضی، فیزیک، شیمی و علوم پایه: فرمول‌ها را حتماً با فرمت لاتک با علامت دلار بنویسید (درون‌خطی مانند $E = mc^2$ و بلوکی مانند $$a^2 + b^2 = c^2$$).
 3. برای سوالات متنی: توضیحات علمی و دسته‌بندی‌شده همراه با نکات کلیدی (💡) ارائه دهید.
+
+========================================================================
+⛔ قانون بسیار حیاتی تفکیک موضوعی و اعتبارسنجی زمینه سوال (Subject Guardrail):
+========================================================================
+کاربر در بالای صفحه یک «موضوع درسی» را انتخاب کرده است که در ورودی با عنوان [موضوع درسی انتخاب‌شده] برای شما مشخص می‌شود:
+- math: منحصراً ریاضیات، حسابان، هندسه، جبر، آمار و احتمال، مثلثات، معادلات، ماتریس‌ها، مشتق و انتگرال.
+- physics: منحصراً فیزیک، مکانیک، دینامیک، نجوم، کیهان‌شناسی، سیارات و منظومه شمسی، گرانش، الکتریسیته، مغناطیس، نور، ترمودینامیک، نسبیت، کوانتوم.
+- biology: منحصراً زیست‌شناسی، سلول، ژنتیک، تکامل، اندام‌ها و فیزیولوژی بدن انسان، گیاه‌شناسی، جانورشناسی، بافت‌شناسی، اکولوژی.
+- chemistry: منحصراً شیمی، جدول تناوبی، عناصر، اتم‌ها و پیوندها، واکنش‌ها، استوکیومتری، ترموشیمی، اسیدها و بازها، سنتز مواد.
+- coding: منحصراً برنامه‌نویسی، طراحی وب، توسعه نرم‌افزار، الگوریتم‌ها، پایتون، جاوااسکریپت، پایگاه داده، هوش مصنوعی، شبکه و علوم کامپیوتر.
+- general: عمومی، آزاد یا ترکیبی (در این حالت هرگونه پرسش علمی و درسی مجاز است).
+
+دستورالعمل قطعی در صورت ناهماهنگی سوال با موضوع:
+اگر [موضوع درسی انتخاب‌شده] برابر با general نباشد، و سوال کاربر متعلق به دسته‌بندی علمی دیگری باشد (مثال‌های بارز: انتخاب math ولی پرسیدن سوال نجومی/سیارات/فیزیک، انتخاب math ولی پرسیدن سوال پزشکی/زیست‌شناسی، انتخاب biology ولی پرسیدن سوال کدنویسی):
+۱. به هیچ وجه محتوای آموزشی درس نامربوط را پاسخ ندهید!
+۲. فیلد "isOffTopic": true قرار دهید.
+۳. فیلد "detectedSubject" را شناسه مناسب سوال (یکی از math, physics, biology, chemistry, coding) قرار دهید.
+۴. فیلد "suggestedSubjectName" را نام فارسی آن حوزه قرار دهید (مثلاً "فیزیک و نجوم").
+۵. فیلد "needsVisual": false و "diagramCode": "" قرار دهید.
+۶. در فیلد "explanation" یک متن هشدار و راهنمای فوق‌العاده محترمانه و دقیق به فارسی با فرمت مارک‌داون زیر بنویسید:
+### ⚠️ موضوع سوال با دسته‌بندی انتخابی مطابقت ندارد!
+شما در حال حاضر موضوع **«[نام موضوع انتخابی فعلی]»** را انتخاب کرده‌اید، اما سوال پرسیده‌شده مربوط به حوزه **«[نام موضوع واقعی سوال]»** است.
+
+💡 **راهنمای ادامه:**
+- برای دریافت آموزش کامل، فلوچارت و تصویر این مبحث، کافی است موضوع گفتگو را از بالای صفحه به **«[نام موضوع واقعی]»** (یا حالت **«عمومی / آزاد»**) تغییر دهید.
+- یا در همین بخش، سوالی در زمینه **[نام موضوع انتخابی فعلی]** مطرح بفرمایید (مانند: [یک مثال جذاب از یک سوال مرتبط]).
+۷. در فیلد "ttsSummary": "موضوع این پرسش با دسته‌بندی انتخابی مطابقت ندارد. لطفاً دسته‌بندی را تغییر دهید یا سوال مرتبط بپرسید."
+
+اگر سوال با [موضوع درسی انتخاب‌شده] همخوانی دارد یا موضوع general است:
+"isOffTopic": false قرار دهید و طبق روال عادی با بالاترین کیفیت تدریس کنید.
 
 قانون بسیار مهم برای دیاگرام‌های مفهومی و فلوچارت (diagramCode):
 - برای هر مبحثی که دارای «مراحل گام‌به‌گام»، «فرآیند»، «الگوریتم»، «چرخه»، «معماری و ساختار» یا «روابط علت و معلولی» است (مانند: مراحل تقسیم سلولی، فرآیند فتوسنتز، الگوریتم جستجوی دودویی، چرخه آب، اتصال کلاینت به سرور، جدول طبقه‌بندی یا فلوچارت حل مسئله):
@@ -49,8 +82,11 @@ const SYSTEM_PROMPT = `
 
 خروجی الزامی شما یک آبجکت JSON معتبر است:
 {
+  "isOffTopic": false,
+  "detectedSubject": "math | physics | biology | chemistry | coding | general",
+  "suggestedSubjectName": "نام فارسی حوزه مرتبط (در صورت off-topic)",
   "explanation": "متن کامل و آموزشی به زبان فارسی همراه با فرمول‌های لاتک و بلوک‌های کد",
-  "diagramCode": "کد معتبر Mermaid برای نمایش فلوچارت مفهومی درس (یا رشته خالی اگر مبحث نیاز به دیاگرام ندارد)",
+  "diagramCode": "کد معتبر Mermaid برای نمایش فلوچارت مفهومی درس (یا رشته خالی اگر مبحث نیاز به دیاگرام ندارد یا off-topic است)",
   "needsVisual": true / false,
   "visualPrompt": "A concise 10-15 words English description of the scientific physical subject or clean UI mockup, or empty string if needsVisual is false",
   "visualEntity": {
@@ -60,10 +96,10 @@ const SYSTEM_PROMPT = `
     "category": "astronomy | biology | chemistry | physics | anatomy | engineering | geography | other"
   },
   "ttsSummary": "خلاصه شیوا و گویای ۲ تا ۳ جمله‌ای از نکات اصلی درس به زبان فارسی برای قرائت صوتی",
-  "subject": "موضوع سوال (مانند: ریاضی، فیزیک، زیست‌شناسی، شیمی، برنامه‌نویسی یا عمومی)",
+  "subject": "موضوع سوال",
   "followUpQuestions": [
-    "سوال پیشنهادی اول برای تعمیق درس",
-    "سوال پیشنهادی دوم یا مثال عملی"
+    "سوال پیشنهادی اول",
+    "سوال پیشنهادی دوم"
   ]
 }
 `;
@@ -86,7 +122,17 @@ export async function generateTutorExplanation(
   const openaiApiKey = process.env.OPENAI_API_KEY;
   const baseUrl = process.env.AI_BASE_URL;
 
-  let promptText = `${SYSTEM_PROMPT}\n\n[موضوع درسی]: ${subject}\n[سوال و درخواست دانش‌آموز]:\n${
+  const SUBJECT_MAP: Record<string, string> = {
+    math: "ریاضی و هندسه",
+    physics: "فیزیک و نجوم",
+    biology: "زیست‌شناسی",
+    chemistry: "شیمی و مولکول‌ها",
+    coding: "برنامه‌نویسی و کامپیوتر",
+    general: "عمومی / آزاد",
+  };
+  const subjectName = SUBJECT_MAP[subject] || subject;
+
+  let promptText = `${SYSTEM_PROMPT}\n\n[موضوع درسی انتخاب‌شده]: ${subject} (${subjectName})\n[سوال و درخواست دانش‌آموز]:\n${
     question || "لطفاً این تصویر/مسئله درسی را با دقت تحلیل، تشریح و حل کن."
   }`;
 
@@ -263,17 +309,24 @@ function parseAIResponse(
       diagramCode = diagramCode.replace(/^```\s*/, "").replace(/\s*```$/, "");
     }
 
+    const isOffTopic = Boolean(obj.isOffTopic);
+    const detectedSubject = obj.detectedSubject ? String(obj.detectedSubject).trim() : undefined;
+    const suggestedSubjectName = obj.suggestedSubjectName ? String(obj.suggestedSubjectName).trim() : undefined;
+
     return {
       explanation: obj.explanation || rawText,
-      needsVisual,
-      visualEntity,
-      diagramCode: diagramCode && diagramCode.length > 8 ? diagramCode : undefined,
-      visualPrompt: needsVisual ? obj.visualPrompt : undefined,
+      needsVisual: isOffTopic ? false : needsVisual,
+      visualEntity: isOffTopic ? undefined : visualEntity,
+      diagramCode: (!isOffTopic && diagramCode && diagramCode.length > 8) ? diagramCode : undefined,
+      visualPrompt: (!isOffTopic && needsVisual) ? obj.visualPrompt : undefined,
       ttsSummary:
         obj.ttsSummary ||
         obj.explanation?.slice(0, 200) ||
         "توضیحات آموزشی آماده است.",
       subject: obj.subject || defaultSubject,
+      isOffTopic,
+      detectedSubject,
+      suggestedSubjectName,
       followUpQuestions: Array.isArray(obj.followUpQuestions)
         ? obj.followUpQuestions
         : [],

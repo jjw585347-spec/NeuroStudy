@@ -176,23 +176,23 @@ export default function QuestionSolverView() {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-6">
-      <div className="mx-auto max-w-4xl space-y-6">
+    <div className="flex-1 overflow-y-auto px-2.5 py-4 sm:px-4 sm:py-6">
+      <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6">
         {/* هدر بخش حل سوال */}
-        <div className="rounded-2xl border border-indigo-500/20 bg-gradient-to-r from-indigo-950/40 via-slate-900/50 to-violet-950/40 p-5 shadow-xl backdrop-blur-md">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 shadow-lg shadow-emerald-500/20">
-              <Target className="h-6 w-6 text-white" />
+        <div className="rounded-2xl border border-indigo-500/20 bg-gradient-to-r from-indigo-950/40 via-slate-900/50 to-violet-950/40 p-3.5 sm:p-5 shadow-xl backdrop-blur-md">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 shadow-lg shadow-emerald-500/20">
+              <Target className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
             </div>
-            <div>
-              <h1 className="text-lg font-bold text-white sm:text-xl flex items-center gap-2">
+            <div className="min-w-0">
+              <h1 className="text-sm font-bold text-white sm:text-xl flex flex-wrap items-center gap-2">
                 <span>حل هوشمند سوالات، تست‌ها و امتحانات</span>
-                <span className="rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-400 border border-emerald-500/30">
+                <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] sm:text-[11px] font-semibold text-emerald-400 border border-emerald-500/30">
                   تشخیص گزینه قطعی
                 </span>
               </h1>
-              <p className="mt-1 text-xs text-slate-400">
-                تصویر تست یا سوال تشریحی خود را آپلود کنید (یا با <kbd className="rounded bg-slate-800 px-1.5 py-0.5 font-mono text-[10px] text-indigo-300">Ctrl + V</kbd> پیست کنید)؛ هوش مصنوعی آن را گام‌به‌گام حل کرده و گزینه درست را مشخص می‌کند.
+              <p className="mt-1 text-[11px] sm:text-xs text-slate-400 leading-relaxed">
+                تصویر تست یا سوال تشریحی خود را آپلود کنید (یا با <kbd className="rounded bg-slate-800 px-1 py-0.5 font-mono text-[10px] text-indigo-300">Ctrl + V</kbd> پیست کنید)؛ هوش مصنوعی آن را گام‌به‌گام حل کرده و گزینه درست را مشخص می‌کند.
               </p>
             </div>
           </div>

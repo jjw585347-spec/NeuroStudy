@@ -47,8 +47,13 @@ interface MediaViewerProps {
   visualPrompt?: string;
   audioUrl?: string;
   ttsSummary?: string;
+  subject?: string;
+  isOffTopic?: boolean;
+  detectedSubject?: string;
+  suggestedSubjectName?: string;
   followUpQuestions?: string[];
   onFollowUpClick?: (question: string) => void;
+  onSwitchSubject?: (subjectId: string) => void;
   onImageUpdate?: (newImage: {
     imageUrl: string;
     imageSource: "web_encyclopedia" | "ai_generated";
@@ -82,8 +87,13 @@ export default function MediaViewer({
   visualPrompt,
   audioUrl,
   ttsSummary,
+  subject,
+  isOffTopic = false,
+  detectedSubject,
+  suggestedSubjectName,
   followUpQuestions = [],
   onFollowUpClick,
+  onSwitchSubject,
   onImageUpdate,
   isLoading = false,
   loadingStep = "done",
@@ -211,6 +221,52 @@ export default function MediaViewer({
             {loadingStep === "speaking" && "در حال آماده‌سازی صوت توضیحات..."}
             {loadingStep === "done" && "در حال آماده‌سازی پاسخ..."}
           </span>
+        </div>
+      )}
+
+      {/* هشدار هوشمند عدم تطابق موضوع سوال و راهنمایی سریع */}
+      {isOffTopic && (
+        <div className="rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-950/40 via-slate-900/90 to-amber-950/20 p-4 sm:p-5 shadow-xl backdrop-blur-md">
+          <div className="flex items-start gap-3.5">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 shadow-inner">
+              <AlertTriangle className="h-5 w-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="rounded-md bg-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-300 border border-amber-500/30">
+                  عدم تطابق موضوع
+                </span>
+                <span className="text-xs text-slate-400">
+                  راهنمای دسته‌بندی موضوعی
+                </span>
+              </div>
+              <p className="mt-2 text-xs sm:text-sm leading-relaxed text-amber-100/95 font-medium">
+                موضوع این پرسش خارج از سرفصل دسته‌بندی انتخاب‌شده تشخیص داده شد. برای دریافت تدریس گام‌به‌گام همراه با مدل تصویری و فلوچارت، می‌توانید مستقیماً دسته‌بندی را تغییر دهید:
+              </p>
+
+              {detectedSubject && onSwitchSubject && (
+                <div className="mt-3.5 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onSwitchSubject(detectedSubject)}
+                    className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-orange-500 px-4 py-2 text-xs font-bold text-slate-950 shadow-md transition hover:from-amber-400 hover:to-orange-400 active:scale-95"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    <span>
+                      تغییر خودکار به «{suggestedSubjectName || detectedSubject}» و دریافت پاسخ
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onSwitchSubject("general")}
+                    className="rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-xs font-medium text-slate-300 transition hover:bg-slate-700 hover:text-white"
+                  >
+                    تغییر به «عمومی / آزاد»
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 

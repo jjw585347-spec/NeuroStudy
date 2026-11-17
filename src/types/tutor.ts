@@ -29,6 +29,9 @@ export interface TutorMessage {
   audioBlob?: Blob;
   ttsSummary?: string;
   subject?: string;
+  isOffTopic?: boolean;
+  detectedSubject?: string;
+  suggestedSubjectName?: string;
   followUpQuestions?: string[];
   createdAt: string;
   isLoading?: boolean;
