@@ -36,7 +36,12 @@ async function updateEnvFile(updates: Record<string, string>) {
     process.env[key] = value;
   }
 
-  await fs.writeFile(envPath, lines.join("\n"), "utf-8");
+  // تلاش برای ثبت روی دیسک محلی (در سرورلس‌های فقط‌خواندنی ورسل نادیده گرفته می‌شود)
+  try {
+    await fs.writeFile(envPath, lines.join("\n"), "utf-8");
+  } catch (err) {
+    console.warn("Could not write to local env file (normal on read-only serverless):", err);
+  }
 }
 
 /**

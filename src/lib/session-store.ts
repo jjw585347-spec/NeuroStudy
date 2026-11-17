@@ -5,7 +5,10 @@ import { TutorSession } from "@/types/tutor";
 // مدت زمان مجاز نگهداری پیام‌ها و مکالمات: ۲ روز (۴۸ ساعت به میلی‌ثانیه)
 export const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
 
-const SESSIONS_DIR = path.join(process.cwd(), "data", "sessions");
+// سازگار با محیط‌های ابری و سرورلس ورسل (/tmp) و سرورهای محلی (data/sessions)
+const SESSIONS_DIR = process.env.VERCEL
+  ? path.join("/tmp", "sessions")
+  : path.join(process.cwd(), "data", "sessions");
 
 /**
  * ایجاد مسیر امن و یکتا برای ذخیره فایل جلسات کاربر
