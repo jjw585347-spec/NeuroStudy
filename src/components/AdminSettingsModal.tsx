@@ -41,6 +41,7 @@ export default function AdminSettingsModal({
   const [newAdminPassword, setNewAdminPassword] = useState("");
 
   // نمایش/مخفی کردن کلیدها
+  const [showLoginPass, setShowLoginPass] = useState(false);
   const [showGeminiKey, setShowGeminiKey] = useState(false);
   const [showSmtpPass, setShowSmtpPass] = useState(false);
 
@@ -243,13 +244,24 @@ export default function AdminSettingsModal({
               <label className="block text-xs font-medium text-slate-300 mb-1.5">
                 رمز عبور مدیریت
               </label>
-              <input
-                type="password"
-                value={adminPassword}
-                onChange={(e) => setAdminPassword(e.target.value)}
-                placeholder="رمز عبور ادمین (پیش‌فرض: admin123)"
-                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none"
-              />
+              <div className="relative">
+                <input
+                  type={showLoginPass ? "text" : "password"}
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  placeholder="رمز عبور ادمین..."
+                  dir="ltr"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3.5 py-2.5 pl-10 text-sm text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowLoginPass(!showLoginPass)}
+                  className="absolute left-3 top-3 text-slate-400 hover:text-white transition"
+                  title={showLoginPass ? "مخفی‌سازی رمز" : "نمایش رمز"}
+                >
+                  {showLoginPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
 
             <button
