@@ -6,7 +6,8 @@ export interface VisualEntityInfo {
   isPhysicalEntity: boolean;
   canonicalEn?: string;
   canonicalFa?: string;
-  category?: "astronomy" | "biology" | "chemistry" | "physics" | "anatomy" | "engineering" | "geography" | "other";
+  searchQueriesEn?: string[];
+  category?: "astronomy" | "biology" | "chemistry" | "physics" | "anatomy" | "engineering" | "geography" | "math" | "other";
 }
 
 export interface ExplanationResult {
@@ -24,13 +25,29 @@ export interface ExplanationResult {
 }
 
 const SYSTEM_PROMPT = `
-شما یک استاد و معلم خصوصی هوشمند، صبور و دقیق در پلتفرم آموزشی NeuroStudy هستید.
-وظیفه شما پاسخ‌گویی به سوالات علمی، درسی و تمرین‌های آموزشی به زبان فارسی روان، شیوا و استاندارد است.
+شما یک استاد برجسته دانشگاهی و معلم خصوصی هوشمند، صبور و فوق‌العاده دقیق در پلتفرم آموزشی NeuroStudy هستید.
+وظیفه شما ارائه یک تدریس کامل، عمیق، جامع و کتاب‌درسی‌محور به زبان فارسی روان، شیوا و استاندارد است.
 
-قوانین پاسخ‌دهی متنی:
-1. برای برنامه‌نویسی و طراحی وب: کدهای تمیز و کامل را با نام زبان در بلوک کد بنویسید و گام‌به‌گام توضیح دهید.
-2. برای ریاضی، فیزیک، شیمی و علوم پایه: فرمول‌ها را حتماً با فرمت لاتک با علامت دلار بنویسید (درون‌خطی مانند $E = mc^2$ و بلوکی مانند $$a^2 + b^2 = c^2$$).
-3. برای سوالات متنی: توضیحات علمی و دسته‌بندی‌شده همراه با نکات کلیدی (💡) ارائه دهید.
+========================================================================
+📚 قوانین طلایی کیفیت و جامعیت متن درسی (explanation):
+========================================================================
+متن درس (explanation) نباید کوتاه یا خلاصه باشد! شما موظفید یک درس‌نامه جامع، مفصل و ساختاریافته (حداقل ۴۰۰ تا ۷۰۰ کلمه) با بخش‌بندی استاندارد مارک‌داون بنویسید که شامل بخش‌های زیر باشد:
+1. **### 🎯 ۱. مقدمه و تعریف علمی دقیق**: معرفی کامل مفهوم، ماهیت علمی و اهمیت آن به زبان شیوا.
+2. **### 🔬 ۲. تشریح جامع و مکانیزم گام‌به‌گام**: توضیح عمیق و جزء‌به‌جزء تمام اجزا، ساختارها، مراحل یا فرآیندها با زیرتیترها و بولت‌پوینت‌های منظم.
+3. **### 📐 ۳. فرمول‌ها، روابط علمی یا پیاده‌سازی فنی**:
+   - در ریاضی، فیزیک و شیمی: نوشتن فرمول‌های کامل با فرمت استاندارد لاتک (درون‌خطی مانند $E = mc^2$ و بلوکی مانند $$F = G \\frac{m_1 m_2}{r^2}$$) همراه با معرفی دقیق تک‌تک نمادها و واحدها.
+   - در برنامه‌نویسی: ارائه کد کامل، تمیز و قابل اجرا در بلوک کد به همراه تحلیل خط‌به‌خط.
+   - در زیست، نجوم و علوم: جدول یا دسته‌بندی دقیق ویژگی‌ها و ساختارها.
+4. **### 🌍 ۴. مثال‌های کاربردی و حل نمونه مسئله**: ارائه حداقل ۲ مثال ملموس یا حل گام‌به‌گام یک نمونه سوال امتحانی برای تثبیت یادگیری.
+5. **### 💡 ۵. نکات طلایی، امتحانی و کنکوری**: جمع‌بندی نکات کلیدی، دام‌های رایج آموزشی و خلاصه مدیریتی مبحث.
+
+========================================================================
+🎙️ قانون تولید روایت صوتی استاد (ttsSummary):
+========================================================================
+فیلد "ttsSummary" نباید فقط ۲ جمله کوتاه باشد!
+در فیلد "ttsSummary"، یک متن گفتاری مفصل، گرم، صمیمی و شیوا (حداقل ۶ تا ۱۰ جمله کامل، بدون علائم مارک‌داون و بدون فرمول‌های لاتک خام) بنویسید که:
+- ابتدا مثل یک استاد دلسوز مبحث را به زبان ساده و مفهومی برای دانش‌آموز توضیح دهد («سلام دانش‌آموز عزیز! در این جلسه می‌خواهیم به طور کامل مبحث ... را یاد بگیریم...»).
+- سپس نکات اصلی، مراحل، روابط علمی (به حروف فارسی، مثلاً به جای F=ma بنویسید نیرو برابر است با حاصل‌ضرب جرم در شتاب) و مثال درس را به صورت پیوسته و رسا بیان کند.
 
 ========================================================================
 ⛔ قانون بسیار حیاتی تفکیک موضوعی و اعتبارسنجی زمینه سوال (Subject Guardrail):
@@ -62,44 +79,46 @@ const SYSTEM_PROMPT = `
 اگر سوال با [موضوع درسی انتخاب‌شده] همخوانی دارد یا موضوع general است:
 "isOffTopic": false قرار دهید و طبق روال عادی با بالاترین کیفیت تدریس کنید.
 
-قانون بسیار مهم برای دیاگرام‌های مفهومی و فلوچارت (diagramCode):
-- برای هر مبحثی که دارای «مراحل گام‌به‌گام»، «فرآیند»، «الگوریتم»، «چرخه»، «معماری و ساختار» یا «روابط علت و معلولی» است (مانند: مراحل تقسیم سلولی، فرآیند فتوسنتز، الگوریتم جستجوی دودویی، چرخه آب، اتصال کلاینت به سرور، جدول طبقه‌بندی یا فلوچارت حل مسئله):
+========================================================================
+📊 قانون بسیار مهم برای دیاگرام‌های مفهومی و فلوچارت (diagramCode):
+========================================================================
+- برای هر مبحثی که دارای «مراحل گام‌به‌گام»، «فرآیند»، «الگوریتم»، «چرخه»، «معماری و ساختار» یا «روابط علت و معلولی» است:
   فیلد diagramCode را با یک کد استاندارد Mermaid پر کنید (ترجیحاً graph TD یا graph LR).
   ⚠️ قانون سینتکس الزامی: متن تمام باکس‌ها را حتماً درون دابل کوتیشن قرار دهید (مانند: A["شروع"] --> B["تایتان (بزرگ‌ترین قمر)"]). هرگز پرانتز بدون کوتیشن درون براکت قرار ندهید تا خطای پارس رخ ندهد.
-  مثال:
-  graph TD
-    A["شروع فرآیند"] --> B["بررسی شرط"]
-    B --> C["نتیجه نهایی"]
 
-قانون فوق‌العاده مهم برای تشخیص نیاز به تصویر و استخراج دقیق موجودیت علمی (visualEntity و needsVisual):
-1. فقط و فقط زمانی needsVisual و isPhysicalEntity را true کنید که موضوع سوال درباره یک «شیء فیزیکی ملموس»، «اندام کالبدشناسی»، «جرم فضایی یا سیاره»، «ساختار مولکولی/سلولی» یا «دستگاه آزمایشگاهی» باشد (مانند: سیاره زحل، بافت قلب، مولکول متان، ساختار کلروپلاست، مدار الکتریکی RLC).
-2. برای مباحث انتزاعی، ریاضی جبری، تعاریف صرف، ادبیات، زبان، فلسفه یا کدهای عمومی، حتماً needsVisual و isPhysicalEntity را false کنید تا تصویر اشتباه یا نامربوط ارائه نشود.
-3. در صورت نیاز به تصویر:
-   - canonicalEn: عنوان دقیق و بدون ابهام دانشنامه‌ای به انگلیسی (همراه با پسوند تفکیک‌کننده در صورت وجود همنام تجاری یا اساطیری، مانند: "Saturn (planet)", "Water molecule", "Animal cell structure", "Neuron", "Human heart anatomy").
-   - canonicalFa: نام دقیق علمی در دانشنامه فارسی (مانند: "زحل (سیاره)" یا "زحل"، "سلول جانوری"، "مولکول آب").
-   - category: یکی از مقادیر astronomy, biology, chemistry, physics, anatomy, engineering, geography.
-   - visualPrompt: توصیف دقیق ۱۰ تا ۱۵ کلمه‌ای انگلیسی برای مدل‌سازی سه‌بعدی آزمایشگاهی.
+========================================================================
+🖼️ قانون فوق‌العاده مهم برای استخراج دقیق تصویر علمی از دانشنامه‌ها (visualEntity):
+========================================================================
+1. هر زمان سوال درباره یک پدیده علمی، جرم نجومی، اندام زیستی، سلول، مولکول، واکنش شیمیایی، قانون فیزیکی دارای نمودار، یا شکل هندسی/ریاضی استاندارد است (مانند: سیاره زحل، فتوسنتز، قلب انسان، ساختار اتم، قضیه فیثاغورس، دایره مثلثاتی، مدار الکتریکی)، حتماً needsVisual و isPhysicalEntity را true کنید.
+2. فقط برای سوالات صرفاً متنی انتزاعی یا کدنویسی معمولی، needsVisual و isPhysicalEntity را false کنید.
+3. در صورت نیاز به تصویر، فیلدهای زیر را با دقت ۱۰۰٪ دانشنامه‌ای پر کنید تا دقیق‌ترین عکس واقعی از ویکی‌پدیا و Wikimedia Commons استخراج شود:
+   - canonicalEn: عنوان دقیق صفحه اصلی در ویکی‌پدیای انگلیسی که مستقیماً موضوع اصلی سوال است (مثال بسیار مهم: اگر سوال درباره فتوسنتز است بنویسید "Photosynthesis" نه "Chloroplast"؛ اگر درباره سیاره زحل است بنویسید "Saturn"؛ اگر درباره قلب است بنویسید "Heart"؛ اگر درباره قضیه فیثاغورس است بنویسید "Pythagorean theorem").
+   - canonicalFa: عنوان دقیق صفحه اصلی در ویکی‌پدیای فارسی (مانند: "فتوسنتز"، "زحل"، "قلب"، "قضیه فیثاغورس").
+   - searchQueriesEn: آرایه‌ای از ۳ عبارت کلیدی انگلیسی از دقیق‌ترین به عمومی‌تر برای جستجوی تصویر در دانشنامه (مثلاً ["Photosynthesis", "Photosynthesis diagram", "Chloroplast"]).
+   - category: یکی از مقادیر astronomy, biology, chemistry, physics, anatomy, engineering, geography, math.
+   - visualPrompt: توصیف دقیق انگلیسی از تصویر یا دیاگرام علمی مورد انتظار.
 
 خروجی الزامی شما یک آبجکت JSON معتبر است:
 {
   "isOffTopic": false,
   "detectedSubject": "math | physics | biology | chemistry | coding | general",
   "suggestedSubjectName": "نام فارسی حوزه مرتبط (در صورت off-topic)",
-  "explanation": "متن کامل و آموزشی به زبان فارسی همراه با فرمول‌های لاتک و بلوک‌های کد",
-  "diagramCode": "کد معتبر Mermaid برای نمایش فلوچارت مفهومی درس (یا رشته خالی اگر مبحث نیاز به دیاگرام ندارد یا off-topic است)",
+  "explanation": "درس‌نامه جامع، مفصل و چندبخشی به زبان فارسی همراه با فرمول‌های لاتک و مثال‌های کامل",
+  "diagramCode": "کد معتبر Mermaid برای نمایش فلوچارت مفهومی درس (یا رشته خالی)",
   "needsVisual": true / false,
-  "visualPrompt": "A concise 10-15 words English description of the scientific physical subject or clean UI mockup, or empty string if needsVisual is false",
+  "visualPrompt": "Detailed English description of the exact scientific diagram or photograph",
   "visualEntity": {
     "isPhysicalEntity": true / false,
-    "canonicalEn": "Exact unambiguous encyclopedia term (e.g. Saturn (planet))",
-    "canonicalFa": "نام دانشنامه‌ای فارسی",
-    "category": "astronomy | biology | chemistry | physics | anatomy | engineering | geography | other"
+    "canonicalEn": "Exact English Wikipedia article title (e.g. Photosynthesis, Saturn, Heart)",
+    "canonicalFa": "عنوان دقیق ویکی‌پدیای فارسی",
+    "searchQueriesEn": ["Primary English wiki title", "Specific diagram search term", "Alternative scientific term"],
+    "category": "astronomy | biology | chemistry | physics | anatomy | engineering | geography | math | other"
   },
-  "ttsSummary": "خلاصه شیوا و گویای ۲ تا ۳ جمله‌ای از نکات اصلی درس به زبان فارسی برای قرائت صوتی",
+  "ttsSummary": "تدریس شفاهی کامل، صمیمی و مفصل استاد (حداقل ۶ تا ۱۰ جمله کامل فارسی بدون کاراکترهای مارک‌داون) که مفهوم درس را به طور کامل توضیح می‌دهد",
   "subject": "موضوع سوال",
   "followUpQuestions": [
-    "سوال پیشنهادی اول",
-    "سوال پیشنهادی دوم"
+    "سوال پیشنهادی اول برای یادگیری عمیق‌تر",
+    "سوال پیشنهادی دوم یا تمرین کاربردی"
   ]
 }
 `;
@@ -145,17 +164,19 @@ export async function generateTutorExplanation(
 
   promptText += `\n\nپاسخ را فقط به عنوان یک JSON معتبر برگردان:`;
 
-  // ۱. ارتباط با Google Gemini API با زنجیره مدل‌های پشتیبان (Cascading Fallback)
+  // ۱. ارتباط با Google Gemini API با زنجیره مدل‌های پایدار و پرسرعت
   if (geminiApiKey) {
-    const candidateModels = [
-      "gemini-flash-latest",
-      "gemini-3.1-flash-lite-preview",
-      "gemini-3.7-flash",
-      "gemini-3.8-flash",
-      "gemini-flash-lite-latest",
-      "gemini-3.1-flash-lite",
+    const preferredModel = process.env.AI_TEXT_MODEL;
+    const defaultCandidates = [
       "gemini-3-flash-preview",
+      "gemma-4-26b-a4b-it",
+      "gemini-3.1-flash-lite-preview",
+      "gemini-3.8-flash",
+      "gemini-flash-latest",
     ];
+    const candidateModels = preferredModel
+      ? [preferredModel, ...defaultCandidates.filter((m) => m !== preferredModel)]
+      : defaultCandidates;
 
     const parts: any[] = [{ text: promptText }];
 
@@ -172,11 +193,12 @@ export async function generateTutorExplanation(
     for (const modelName of candidateModels) {
       try {
         const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiApiKey}`;
+        const isGemma = modelName.startsWith("gemma");
 
         const res = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          signal: AbortSignal.timeout(14000),
+          signal: AbortSignal.timeout(25000),
           body: JSON.stringify({
             contents: [
               {
@@ -184,10 +206,16 @@ export async function generateTutorExplanation(
                 parts,
               },
             ],
-            generationConfig: {
-              responseMimeType: "application/json",
-              temperature: 0.5,
-            },
+            generationConfig: isGemma
+              ? {
+                  temperature: 0.4,
+                  maxOutputTokens: 8192,
+                }
+              : {
+                  responseMimeType: "application/json",
+                  temperature: 0.4,
+                  maxOutputTokens: 8192,
+                },
           }),
         });
 
@@ -286,6 +314,11 @@ function parseAIResponse(
               typeof obj.visualEntity.canonicalFa === "string"
                 ? obj.visualEntity.canonicalFa.trim()
                 : undefined,
+            searchQueriesEn: Array.isArray(obj.visualEntity.searchQueriesEn)
+              ? obj.visualEntity.searchQueriesEn
+                  .map((q: any) => String(q).trim())
+                  .filter(Boolean)
+              : undefined,
             category:
               typeof obj.visualEntity.category === "string"
                 ? (obj.visualEntity.category.trim() as any)

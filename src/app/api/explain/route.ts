@@ -50,13 +50,14 @@ export async function POST(req: NextRequest) {
     let imageTitle: string | undefined = undefined;
     let isVerified: boolean = false;
 
-    if (aiResult.needsVisual && aiResult.visualPrompt) {
-      // ابتدا جستجو در تصاویر علمی و واقعی اینترنت (ویکی‌پدیا / دانشنامه باز) با تایید بینایی هوش مصنوعی
+    if (aiResult.needsVisual && (aiResult.visualPrompt || aiResult.visualEntity?.canonicalEn)) {
+      // جستجوی چندمنبعی در دانشنامه‌های معتبر علمی (ویکی‌پدیای انگلیسی، فارسی و Wikimedia Commons) با داوری بینایی هوش مصنوعی
       const webImage = await searchEducationalWebImage({
-        prompt: aiResult.visualPrompt,
+        prompt: aiResult.visualPrompt || aiResult.visualEntity?.canonicalEn || finalQuestion,
         question: finalQuestion,
         canonicalEn: aiResult.visualEntity?.canonicalEn,
         canonicalFa: aiResult.visualEntity?.canonicalFa,
+        searchQueriesEn: aiResult.visualEntity?.searchQueriesEn,
         category: aiResult.visualEntity?.category,
       });
 
@@ -64,15 +65,6 @@ export async function POST(req: NextRequest) {
         imageUrl = webImage.url;
         imageSource = "web_encyclopedia";
         imageTitle = webImage.title;
-        isVerified = true;
-      } else {
-        // در صورت نبود تصویر در دانشنامه‌های اینترنتی یا رد شدن در اعتبارسنجی بینایی، تولید مدل سه‌بعدی اختصاصی با هوش مصنوعی
-        imageUrl = generateEducationalImageUrl(
-          aiResult.visualPrompt,
-          aiResult.visualEntity?.category
-        );
-        imageSource = "ai_generated";
-        imageTitle = "مدل‌سازی سه‌بعدی اختصاصی هوش مصنوعی";
         isVerified = true;
       }
     }

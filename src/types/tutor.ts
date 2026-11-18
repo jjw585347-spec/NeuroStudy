@@ -18,6 +18,7 @@ export interface TutorMessage {
     isPhysicalEntity?: boolean;
     canonicalEn?: string;
     canonicalFa?: string;
+    searchQueriesEn?: string[];
     category?: string;
   };
   imageUrl?: string;

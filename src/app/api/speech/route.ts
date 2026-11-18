@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 /**
- * ایجاد هدر استاندارد ۴۴ بایتی فایل صوتی WAV برای استریم PCM
+ * ایجاد هدر استاندارد ۴۴ بایتی فایل صوتی WAV برای استریم PCM خام
  */
 function createWavHeader(
   pcmLength: number,
@@ -31,30 +31,49 @@ function createWavHeader(
 }
 
 /**
- * تبدیل متن به گفتار (TTS) با استفاده از مدل پیشرفته صوتی Google Gemini TTS
+ * پاک‌سازی هوشمند علائم مارک‌داون و تبدیل فرمول‌های ریاضی لاتک به عبارت‌های قابل روخوانی فارسی
  */
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const rawText = searchParams.get("text") || "توضیحات درسی این بخش آماده است.";
-
-  // پاک‌سازی علائم نگارشی مارک‌داون، تگ‌ها و فرمول‌ها برای قرائت فصیح
-  const cleanText = rawText
-    .replace(/```[\s\S]*?```/g, " ")
-    .replace(/`.*?`/g, " ")
-    .replace(/[#*`$\\_~\[\]\(\)\{\}]/g, " ")
+function preparePersianTextForSpeech(rawText: string): string {
+  return rawText
+    .replace(/```[\s\S]*?```/g, " ، در این بخش نمونه کد برنامه در صفحه درج شده است، ")
+    .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, " نسبت $1 به $2 ")
+    .replace(/\^2\b/g, " به توان دو ")
+    .replace(/\^3\b/g, " به توان سه ")
+    .replace(/\\sqrt\{([^}]+)\}/g, " رادیکال $1 ")
+    .replace(/\\Delta/g, " دلتا ")
+    .replace(/\\pi/g, " پی ")
+    .replace(/\\alpha/g, " آلفا ")
+    .replace(/\\beta/g, " بتا ")
+    .replace(/\\theta/g, " تتا ")
+    .replace(/\\times/g, " ضربدر ")
+    .replace(/\\div/g, " تقسیم بر ")
+    .replace(/\\rightarrow|\\to|-->/g, " منجر به ")
+    .replace(/`([^`]+)`/g, " $1 ")
+    .replace(/[🎯🔬📐🌍💡⚠️🔊📖🎙️]/g, " ")
+    .replace(/[#*`$\\_~\[\]\{\}]/g, " ")
     .replace(/\s+/g, " ")
     .trim()
-    .slice(0, 350);
+    .slice(0, 2200);
+}
+
+/**
+ * تولید صوت فارسی با مدل‌های Gemini TTS
+ */
+async function synthesizeSpeechBuffer(rawText: string): Promise<NextResponse> {
+  const cleanText = preparePersianTextForSpeech(rawText);
+  if (!cleanText) {
+    return new NextResponse(null, { status: 204 });
+  }
 
   const geminiApiKey = process.env.GEMINI_API_KEY;
   const openaiApiKey = process.env.OPENAI_API_KEY;
 
-  // ۱. تولید صوت زنده و باکیفیت با مدل‌های چندوجهی صوتی Google Gemini TTS (همراه با Fallback خودکار)
+  // ۱. تولید صوت زنده و باکیفیت با مدل‌های صوتی Google Gemini TTS
   if (geminiApiKey) {
     const ttsModels = [
-      "gemini-3.1-flash-tts-preview",
-      "gemini-3.8-flash-lite-tts",
       "gemini-3.8-flash-tts",
+      "gemini-3.8-flash-lite-tts",
+      "gemini-3.1-flash-tts-preview",
       "gemini-2.5-flash-preview-tts",
     ];
 
@@ -65,13 +84,14 @@ export async function GET(req: NextRequest) {
         const res = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          signal: AbortSignal.timeout(20000),
           body: JSON.stringify({
             contents: [
               {
                 role: "user",
                 parts: [
                   {
-                    text: `این متن درسی را با صدای رسا، گرم و آموزشی به زبان فارسی بخوان:\n\n${cleanText}`,
+                    text: `این متن آموزشی را به عنوان یک استاد خوش‌بیان، با صدای رسا، طبیعی، شمرده و کاملاً فارسی بخوان:\n\n${cleanText}`,
                   },
                 ],
               },
@@ -95,9 +115,15 @@ export async function GET(req: NextRequest) {
             data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
 
           if (base64Audio) {
-            const pcmBuffer = Buffer.from(base64Audio, "base64");
-            const wavHeader = createWavHeader(pcmBuffer.length, 24000);
-            const wavBuffer = Buffer.concat([wavHeader, pcmBuffer]);
+            const rawBuffer = Buffer.from(base64Audio, "base64");
+            // بررسی اینکه آیا بافر خودش هدر استاندارد RIFF WAV دارد یا PCM خام است
+            const isAlreadyWav =
+              rawBuffer.length > 44 &&
+              rawBuffer.subarray(0, 4).toString("ascii") === "RIFF";
+
+            const wavBuffer = isAlreadyWav
+              ? rawBuffer
+              : Buffer.concat([createWavHeader(rawBuffer.length, 24000), rawBuffer]);
 
             return new NextResponse(wavBuffer, {
               headers: {
@@ -146,15 +172,35 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // در صورت عدم پاسخ سرور خارجی، پاسخ بدون محتوا ارسال تا مرورگر بلافاصله با Web Speech بخواند
   return new NextResponse(null, { status: 204 });
 }
 
 /**
- * تبدیل صوت به متن (STT) با پشتیبانی از مدل چندوجهی Gemini
+ * تبدیل متن به گفتار (GET)
+ */
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const rawText = searchParams.get("text") || "توضیحات درسی این بخش آماده است.";
+  return synthesizeSpeechBuffer(rawText);
+}
+
+/**
+ * پشتیبانی دوگانه در POST:
+ * ۱. اگر JSON ارسال شود ({ text }): تولید صوت TTS برای متون طولانی بدون محدودیت طول URL
+ * ۲. اگر FormData ارسال شود (audio): تبدیل صوت دانش‌آموز به متن (STT)
  */
 export async function POST(req: NextRequest) {
   try {
+    const contentType = req.headers.get("content-type") || "";
+
+    // حالت اول: درخواست تولید صوت TTS برای متن‌های طولانی
+    if (contentType.includes("application/json")) {
+      const body = await req.json();
+      const text = body.text || "";
+      return synthesizeSpeechBuffer(text);
+    }
+
+    // حالت دوم: تبدیل صدای ضبط‌شده کاربر به متن (STT)
     const formData = await req.formData();
     const audioFile = formData.get("audio") as Blob | null;
 
@@ -167,7 +213,6 @@ export async function POST(req: NextRequest) {
 
     const geminiApiKey = process.env.GEMINI_API_KEY;
     const openaiApiKey = process.env.OPENAI_API_KEY;
-    const model = process.env.AI_TEXT_MODEL || "gemini-3-flash-preview";
 
     // ۱. پردازش صوت با OpenAI Whisper
     if (openaiApiKey) {
@@ -202,13 +247,17 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // ۲. پردازش چندوجهی صوت با مدل‌های Gemini (شامل gemini-3.5-transcribe و gemini-3-flash-preview)
+    // ۲. پردازش چندوجهی صوت با مدل‌های Gemini
     if (geminiApiKey) {
       const arrayBuffer = await audioFile.arrayBuffer();
       const base64Audio = Buffer.from(arrayBuffer).toString("base64");
       const mimeType = audioFile.type || "audio/webm";
 
-      const sttModels = ["gemini-3.5-transcribe", "gemini-3-flash-preview"];
+      const sttModels = [
+        "gemini-3-flash-preview",
+        "gemini-3.5-transcribe",
+        "gemma-4-26b-a4b-it",
+      ];
 
       for (const sttModel of sttModels) {
         try {
@@ -251,19 +300,20 @@ export async function POST(req: NextRequest) {
             }
           }
         } catch (err) {
-          console.warn(`Error transcribing with model ${sttModel}:`, err);
+          console.warn(`Gemini STT error with ${sttModel}:`, err);
         }
       }
     }
 
     return NextResponse.json({
       success: true,
-      text: "سوال درسی مطرح‌شده از طریق صوت",
+      text: "",
+      fallback: true,
     });
   } catch (err: any) {
     console.error("Error in /api/speech POST:", err);
     return NextResponse.json(
-      { error: err.message || "خطا در پردازش صوت" },
+      { error: "خطا در پردازش صوت" },
       { status: 500 }
     );
   }

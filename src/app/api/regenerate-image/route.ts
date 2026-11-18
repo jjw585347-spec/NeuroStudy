@@ -10,6 +10,7 @@ export async function POST(req: NextRequest) {
       question,
       canonicalEn,
       canonicalFa,
+      searchQueriesEn,
       category,
       currentUrl,
       mode = "auto", // "auto" | "force_ai" | "next_web"
@@ -45,6 +46,7 @@ export async function POST(req: NextRequest) {
       question,
       canonicalEn,
       canonicalFa,
+      searchQueriesEn,
       category,
       excludeUrls: currentUrl ? [currentUrl] : [],
     });
